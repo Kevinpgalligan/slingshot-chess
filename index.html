@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Slingshot Chess</title>
+</head>
+
+<body>
+<canvas width="480" height="480" id="canvas"></canvas>
+<script src="vec2d.js"></script>
+<script src="slingshotchess.js"></script>
+<script>
+
+canvas.addEventListener('mousedown', function(e) {
+    storeClickPosition(e);
+})
+canvas.addEventListener('mouseup', function(e) {
+    releaseClick(e);
+})
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function main() {
+    while (true) {
+        gameLogic();
+        render();
+        await sleep(25);
+    }
+}
+
+main();
+</script>
+
+</body>
+
+</html>
