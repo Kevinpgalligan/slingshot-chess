@@ -1,3 +1,8 @@
+const TIMESTEPS_PER_SECOND = 30;
+const MILLIS_BETWEEN_TIMESTEPS = 1000/TIMESTEPS_PER_SECOND;
+const MAX_RENDER_SKIPS = 5;
+const DT = MILLIS_BETWEEN_TIMESTEPS;
+
 const SQUARE_WIDTH = 60;
 const BOARD_SQUARES = 8;
 const WIDTH = BOARD_SQUARES * SQUARE_WIDTH;
@@ -10,8 +15,8 @@ const INITIAL_BALL_X = 50;
 const INITIAL_BALL_Y = 50;
 const BALL_RADIUS = 10;
 const BALL_COLOUR = "#FF0000";
-const BALL_FRICTION = 0.4;
-const VELOCITY_SCALE = 0.8;
+const BALL_FRICTION = 0.8;
+const VELOCITY_SCALE = 3.5;
 
 var ballCoords = vec2d(INITIAL_BALL_X, INITIAL_BALL_Y);
 var ballVelocity = vec2d(0.0, 0.0);
@@ -21,6 +26,27 @@ const ctx = canvas.getContext('2d');
 
 var clickPosition = null;
 var hasClicked = false;
+
+async function runMainLoop() {
+    // Main game loop!
+    // https://dewitters.com/dewitters-gameloop/
+    var nextTimestep = Date.now();
+    while (true) {
+        var loops = 0;
+        while (Date.now() > nextTimestep && loops < MAX_RENDER_SKIPS) {
+            updateGameState();
+            nextTimestep += MILLIS_BETWEEN_TIMESTEPS;
+            loops += 1;
+        }
+        render();
+        window.requestAnimationFrame(time => {});
+        await sleep(Math.max(0, nextTimestep - Date.now()));
+    }
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function getClickPosition(event) {
     const rect = canvas.getBoundingClientRect()
@@ -41,8 +67,12 @@ function releaseClick(event) {
     clickPosition = null;
 }
 
-function gameLogic() {
-    ballCoords = toIntegerVec(addVecs(ballCoords, ballVelocity));
+function updateGameState() {
+    ballCoords = toIntegerVec(
+        addVecs(ballCoords,
+                // Velocity is m/s, but only DT milliseconds have
+                // passed, so need to scale it appropriately.
+                scaleVec(DT/1000.0, ballVelocity)));
     if (ballCoords.x < 0) {
         ballCoords.x = 0;
     }

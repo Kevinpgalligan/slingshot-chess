@@ -17,19 +17,7 @@ canvas.addEventListener('mouseup', function(e) {
     releaseClick(e);
 })
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function main() {
-    while (true) {
-        gameLogic();
-        render();
-        await sleep(25);
-    }
-}
-
-main();
+runMainLoop();
 </script>
 
 </body>
