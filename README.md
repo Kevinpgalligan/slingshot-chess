@@ -1,5 +1,5 @@
 ## TODO
-* make board not blurry & shit; make it resizable
+* make board resizable
 * multiple balls, collisions
 * display chess pieces instead of a ball
 * chess piece objects (position, collision ball radius, colour, weight, friction)

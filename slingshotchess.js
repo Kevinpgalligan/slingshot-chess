@@ -33,6 +33,17 @@ var unitLengthsPerPixel = 0;
 var clickPosition = null;
 var hasClicked = false;
 
+function init() {
+    window.addEventListener('mousedown', function(e) {
+        storeClickPosition(e);
+    });
+    window.addEventListener('mouseup', function(e) {
+        releaseClick(e);
+    });
+    canvas.width = 500;
+    canvas.height = 500;
+}
+
 async function runMainLoop() {
     // Main game loop!
     // https://dewitters.com/dewitters-gameloop/
@@ -103,7 +114,7 @@ function applyFriction() {
 }
 
 function render() {
-    // This changes dynamically based on the current
+    // This should change dynamically based on the current
     // size of the canvas, which can change based on
     // the user resizing the window.
     pixelsPerUnitLength = canvas.width/WORLD_WIDTH;
@@ -143,8 +154,8 @@ function drawBackground() {
 }
 
 function drawBoard() {
-    fillSquares(WHITE_COLOUR, 0);
-    fillSquares(BLACK_COLOUR, 1);
+    fillSquares(WHITE_COLOUR, 1);
+    fillSquares(BLACK_COLOUR, 0);
 }
 
 function drawBall(x, y, radius, colour) {
@@ -155,15 +166,14 @@ function drawBall(x, y, radius, colour) {
 }
 
 function fillSquares(colour, initialX) {
-    // Considering top left square to have board coordinates (0, 0).
+    // Considering bottom left square to have board coordinates (0, 0).
     // Need to convert this to "world" coordinates.
     ctx.fillStyle = colour;
     var xCoord = initialX;
     var yCoord = 0;
-    const firstSquareCenter = BOARD_OFFSET + SQUARE_WIDTH/2
     while (yCoord < BOARD_SQUARES) {
-        drawRectangle(BOARD_OFFSET + SQUARE_WIDTH/2 + xCoord*SQUARE_WIDTH,
-                      BOARD_OFFSET + SQUARE_WIDTH/2 + yCoord*SQUARE_WIDTH,
+        drawRectangle(BOARD_OFFSET + xCoord*SQUARE_WIDTH,
+                      BOARD_OFFSET + (yCoord+1)*SQUARE_WIDTH,
                       SQUARE_WIDTH,
                       SQUARE_WIDTH);
         xCoord += 2;
