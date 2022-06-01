@@ -2,20 +2,22 @@
 <html>
 <head>
 <title>Slingshot Chess</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+<meta charset="utf-8">
 </head>
 
 <body>
-<canvas width="480" height="480" id="canvas"></canvas>
+<canvas id="canvas"></canvas>
 <script src="vec2d.js"></script>
 <script src="slingshotchess.js"></script>
-<script>
 
-canvas.addEventListener('mousedown', function(e) {
+<script>
+window.addEventListener('mousedown', function(e) {
     storeClickPosition(e);
-})
-canvas.addEventListener('mouseup', function(e) {
+});
+window.addEventListener('mouseup', function(e) {
     releaseClick(e);
-})
+});
 
 runMainLoop();
 </script>
