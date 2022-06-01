@@ -40,8 +40,6 @@ function init() {
     window.addEventListener('mouseup', function(e) {
         releaseClick(e);
     });
-    canvas.width = 500;
-    canvas.height = 500;
 }
 
 async function runMainLoop() {
@@ -117,6 +115,8 @@ function render() {
     // This should change dynamically based on the current
     // size of the canvas, which can change based on
     // the user resizing the window.
+    canvas.width = Math.min(window.innerHeight, window.innerWidth);
+    canvas.height = canvas.width;
     pixelsPerUnitLength = canvas.width/WORLD_WIDTH;
     unitLengthsPerPixel = WORLD_WIDTH/canvas.width;
     drawBackground();
@@ -190,6 +190,5 @@ function fillSquares(colour, initialX) {
 }
 
 function drawRectangle(x, y, width, height) {
-    //console.log("drawing rectangle at x=" + String(toPixels(x)) + " and y=" + String(yToPixels(y)));
     ctx.fillRect(toPixels(x), yToPixels(y), toPixels(width), toPixels(height));
 }
