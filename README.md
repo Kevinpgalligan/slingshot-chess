@@ -1,5 +1,5 @@
 ## TODO
-* Multiple balls & collision physics (<https://en.wikipedia.org/wiki/Elastic_collision>)
+* Proper collision physics (<https://en.wikipedia.org/wiki/Elastic_collision>)
 * Render chess pieces instead of balls (<https://github.com/lichess-org/lila/tree/master/public/piece/cburnett>)
 * Chess piece objects (position, collision ball radius, colour, weight, friction)
 * Black & white teams take turns

@@ -14,15 +14,31 @@ const BACKGROUND_COLOUR = "#000055";
 const WHITE_COLOUR = "#F0D9B5";
 const BLACK_COLOUR = "#B58863";
 
-const INITIAL_BALL_X = WORLD_WIDTH/2;
-const INITIAL_BALL_Y = WORLD_WIDTH/2;
-const BALL_RADIUS = SQUARE_WIDTH/2;
-const BALL_COLOUR = "#FF0000";
-const BALL_FRICTION = 0.8;
+const FRICTION_COEFFICIENT = 0.8;
 const VELOCITY_SCALE = 3.5;
 
-var ballCoords = vec2d(INITIAL_BALL_X, INITIAL_BALL_Y);
-var ballVelocity = vec2d(0.0, 0.0);
+class Ball {
+    constructor(x, y, radius, colour, weight) {
+        this.coords = vec2d(x, y);
+        this.velocity = vec2d(0.0, 0.0);
+        this.radius = radius;
+        this.colour = colour;
+        this.weight = weight;
+    }
+}
+
+function ballsIntersect(b1, b2) {
+    return euclideanDistance(b1.coords, b2.coords) < b1.radius + b2.radius;
+}
+
+function ballContains(ball, coords) {
+    return euclideanDistance(ball.coords, coords) < ball.radius;
+}
+
+var balls = [
+    new Ball(WORLD_WIDTH/2, WORLD_WIDTH/2, SQUARE_WIDTH/4, "#FF0000", 1),
+    new Ball(WORLD_WIDTH/2 + SQUARE_WIDTH, WORLD_WIDTH/2, SQUARE_WIDTH/5, "#00FF00", 1)
+];
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext('2d');
@@ -31,7 +47,7 @@ var pixelsPerUnitLength = 0;
 var unitLengthsPerPixel = 0;
 
 var clickPosition = null;
-var hasClicked = false;
+var targetBall = null;
 
 function init() {
     window.addEventListener('mousedown', function(e) {
@@ -65,63 +81,78 @@ function sleep(ms) {
 
 function getClickPosition(event) {
     const rect = canvas.getBoundingClientRect()
-    return vec2d(event.clientX - rect.left, event.clientY - rect.top);
+    return vec2d(toUnitLengths(event.clientX - rect.left),
+                 yToUnitLengths(event.clientY - rect.top));
 }
 
 function storeClickPosition(event) {
-    clickPosition = getClickPosition(event);
-    hasClicked = true;
+    var potentialClickPosition = getClickPosition(event);
+    for (ball of balls) {
+        if (ballContains(ball, potentialClickPosition)) {
+            targetBall = ball;
+            clickPosition = potentialClickPosition;
+            break;
+        }
+    }
 }
 
 function releaseClick(event) {
-    if (hasClicked && clickPosition !== null) {
+    if (targetBall !== null && clickPosition !== null) {
         var velocityChange = scaleVec(VELOCITY_SCALE,
-            subVec(pixelVecToWorldVec(clickPosition),
-                   pixelVecToWorldVec(getClickPosition(event))));
-        ballVelocity = addVecs(ballVelocity, velocityChange);
+            subVec(clickPosition, getClickPosition(event)));
+        targetBall.velocity = addVecs(targetBall.velocity, velocityChange);
     }
-    hasClicked = false;
+    targetBall = null;
     clickPosition = null;
 }
 
 function updateGameState() {
-    ballCoords = toIntegerVec(
-        addVecs(ballCoords,
-                // Velocity is m/s, but only DT milliseconds have
-                // passed, so need to scale it appropriately.
-                scaleVec(DT/1000.0, ballVelocity)));
-    /*
-    if (ballCoords.x < 0) {
-        ballCoords.x = 0;
-    }
-    if (ballCoords.x >= WORLD_WIDTH) {
-        ballCoords.x = WORLD_WIDTH - 1;
-    }
-    if (ballCoords.y < 0) {
-        ballCoords.y = 0;
-    }
-    if (ballCoords.y >= WORLD_HEIGHT) {
-        ballCoords.y = WORLD_HEIGHT - 1;
-    }
-    */
-    applyFriction();
-}
+    var movingBalls = [];
+    balls.forEach(ball => {
+        if (!isZeroVec(ball.velocity)) {
+            movingBalls.push(ball);
+        }
+        // Move the balls to their new positions.
+        ball.coords = addVecs(
+            ball.coords,
+            // Velocity is m/s, but only DT milliseconds have
+            // passed, so need to scale it appropriately.
+            scaleVec(DT/1000.0, ball.velocity));
+        // Apply friction to the balls: their velocity reduces
+        // after the movement.
+        // (Probably need to scale this by DT, check what
+        //  the units of friction are).
+        ball.velocity = scaleVec(FRICTION_COEFFICIENT*ball.weight,
+                                 ball.velocity);
+    });
 
-function applyFriction() {
-    ballVelocity = scaleVec(BALL_FRICTION, ballVelocity);
+    // Check for collisions.
+    movingBalls.forEach(ball => {
+        balls.forEach(otherBall => {
+            if (ball !== otherBall && ballsIntersect(ball, otherBall)) {
+                // Take component of ball's velocity towards
+                // other ball, split it evenly beteen them.
+                // Eventually need to take account of proper
+                // collision physics (weight, inelastic collision).
+                var componentVelocity = projectOnto(ball.velocity,
+                                                    subVec(otherBall.coords,
+                                                           ball.coords));
+                otherBall.velocity = addVecs(otherBall.velocity, componentVelocity);
+                ball.velocity = addVecs(ball.velocity, scaleVec(-1, componentVelocity));
+            }
+        });
+    });
 }
 
 function render() {
-    // This should change dynamically based on the current
-    // size of the canvas, which can change based on
-    // the user resizing the window.
+    // This can change as the user resizes the window.
     canvas.width = Math.min(window.innerHeight, window.innerWidth);
     canvas.height = canvas.width;
     pixelsPerUnitLength = canvas.width/WORLD_WIDTH;
     unitLengthsPerPixel = WORLD_WIDTH/canvas.width;
     drawBackground();
     drawBoard();
-    drawBall(ballCoords.x, ballCoords.y, BALL_RADIUS, BALL_COLOUR);
+    balls.forEach(drawBall);
 }
 
 function toPixels(length) {
@@ -143,11 +174,6 @@ function yToUnitLengths(y) {
     return toUnitLengths(canvas.height-1-y);
 }
 
-function pixelVecToWorldVec(pv) {
-    return vec2d(toUnitLengths(pv.x), yToUnitLengths(pv.y));
-}
-
-
 function drawBackground() {
     ctx.fillStyle = BACKGROUND_COLOUR;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -158,10 +184,11 @@ function drawBoard() {
     fillSquares(BLACK_COLOUR, 0);
 }
 
-function drawBall(x, y, radius, colour) {
+function drawBall(ball) {
     ctx.beginPath()
-    ctx.arc(toPixels(x), yToPixels(y), toPixels(radius), 0, 2*Math.PI, false);
-    ctx.fillStyle = colour;
+    ctx.arc(toPixels(ball.coords.x), yToPixels(ball.coords.y),
+            toPixels(ball.radius), 0, 2*Math.PI, false);
+    ctx.fillStyle = ball.colour;
     ctx.fill()
 }
 
