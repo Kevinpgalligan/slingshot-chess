@@ -1,5 +1,6 @@
 ## TODO
-* Proper collision physics (<https://en.wikipedia.org/wiki/Elastic_collision>)
+* Increase / fix friction.
+* Incorporate weight into collision physics.
 * Render chess pieces instead of balls (<https://github.com/lichess-org/lila/tree/master/public/piece/cburnett>)
 * Chess piece objects (position, collision ball radius, colour, weight, friction)
 * Black & white teams take turns
@@ -10,6 +11,7 @@
 * EVENTUALLY: sandbox mode, online multiplayer (networking, open lobby, private games, time per player)
 
 ## References
+* Collision physics: <https://en.wikipedia.org/wiki/Elastic_collision>
 * Game loop stuff:
   - <https://dewitters.com/dewitters-gameloop/>
   - <http://higherorderfun.com/blog/2010/08/17/understanding-the-game-main-loop/>

@@ -1,7 +1,7 @@
 const TIMESTEPS_PER_SECOND = 30;
 const MILLIS_BETWEEN_TIMESTEPS = 1000/TIMESTEPS_PER_SECOND;
 const MAX_RENDER_SKIPS = 5;
-const DT = MILLIS_BETWEEN_TIMESTEPS;
+const DT = MILLIS_BETWEEN_TIMESTEPS/1000.0;
 
 const SQUARE_WIDTH = 100;
 const BOARD_SQUARES = 8;
@@ -14,8 +14,9 @@ const BACKGROUND_COLOUR = "#000055";
 const WHITE_COLOUR = "#F0D9B5";
 const BLACK_COLOUR = "#B58863";
 
-const FRICTION_COEFFICIENT = 0.8;
-const VELOCITY_SCALE = 3.5;
+const FRICTION_COEFFICIENT = 0.6;
+const VELOCITY_SCALE = 0.666;
+const VELOCITY_FLOOR = 0.01;
 
 class Ball {
     constructor(x, y, radius, colour, weight) {
@@ -107,41 +108,70 @@ function releaseClick(event) {
 }
 
 function updateGameState() {
-    var movingBalls = [];
+    var newCoords = [];
     balls.forEach(ball => {
-        if (!isZeroVec(ball.velocity)) {
-            movingBalls.push(ball);
+        if (isZeroVec(ball.velocity)) {
+            newCoords.push(ball.coords);
+        } else {
+            newCoords.push(
+                addVecs(
+                    ball.coords,
+                    scaleVec(DT, ball.velocity)));
+            var oneDimensionalVelocity = vecLength(ball.velocity);
+            // Distance travelled.
+            var d = DT * oneDimensionalVelocity;
+            var newOneDimensionalVelocity = Math.sqrt(Math.pow(oneDimensionalVelocity, 2) - 2*FRICTION_COEFFICIENT*ball.weight*d);
+            ball.velocity = scaleVec(newOneDimensionalVelocity, toUnitVec(ball.velocity));
+            // Just so balls aren't stuck at a very very small velocity that
+            // will never go to zero.
+            if (Math.abs(ball.velocity.x) + Math.abs(ball.velocity.y) < VELOCITY_FLOOR) {
+                ball.velocity.x = 0;
+                ball.velocity.y = 0;
+            }
         }
-        // Move the balls to their new positions.
-        ball.coords = addVecs(
-            ball.coords,
-            // Velocity is m/s, but only DT milliseconds have
-            // passed, so need to scale it appropriately.
-            scaleVec(DT/1000.0, ball.velocity));
-        // Apply friction to the balls: their velocity reduces
-        // after the movement.
-        // (Probably need to scale this by DT, check what
-        //  the units of friction are).
-        ball.velocity = scaleVec(FRICTION_COEFFICIENT*ball.weight,
-                                 ball.velocity);
     });
 
-    // Check for collisions.
-    movingBalls.forEach(ball => {
-        balls.forEach(otherBall => {
-            if (ball !== otherBall && ballsIntersect(ball, otherBall)) {
-                // Take component of ball's velocity towards
-                // other ball, split it evenly beteen them.
-                // Eventually need to take account of proper
-                // collision physics (weight, inelastic collision).
-                var componentVelocity = projectOnto(ball.velocity,
-                                                    subVec(otherBall.coords,
-                                                           ball.coords));
-                otherBall.velocity = addVecs(otherBall.velocity, componentVelocity);
-                ball.velocity = addVecs(ball.velocity, scaleVec(-1, componentVelocity));
+    // Check for collisions between the balls at their
+    // new positions. If a ball is in a collision, freeze
+    // it in its current position.
+    // Warning: doesn't handle multi-ball collisions.
+    var shouldFreeze = Array(newCoords.length).fill(false);
+    for (var i = 0; i < newCoords.length; i += 1) {
+        for (var j = i+1; j < newCoords.length; j += 1) {
+            // Balls collide! Freeze 'em. And update their
+            // velocities.
+            if (euclideanDistance(newCoords[i], newCoords[j]) < balls[i].radius + balls[j].radius) {
+                shouldFreeze[i] = true;
+                shouldFreeze[j] = true;
+                // The component of ball i's velocity in the direction
+                // of ball j is transferred to j. And vice versa.
+                exchangeVelocity(balls[i], balls[j]);
             }
-        });
-    });
+        }
+    }
+
+    for (var i = 0; i < newCoords.length; i += 1) {
+        if (!shouldFreeze[i]) {
+            balls[i].coords = newCoords[i];
+        }
+    }
+}
+
+function exchangeVelocity(ball, otherBall) {
+    var v1 = ball.velocity;
+    var v2 = otherBall.velocity;
+    var c1 = ball.coords;
+    var c2 = otherBall.coords;
+    if (!isZeroVec(v1)) {
+        var v1Component = projectOnto(v1, subVec(c2, c1));
+        ball.velocity = addVecs(ball.velocity, scaleVec(-1, v1Component));
+        otherBall.velocity = addVecs(otherBall.velocity, v1Component);
+    }
+    if (!isZeroVec(v2)) {
+        var v2Component = projectOnto(v2, subVec(c1, c2));
+        ball.velocity = addVecs(ball.velocity, v2Component);
+        otherBall.velocity = addVecs(otherBall.velocity, scaleVec(-1, v2Component));
+    }
 }
 
 function render() {
