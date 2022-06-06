@@ -1,5 +1,4 @@
 ## TODO
-* Increase / fix friction.
 * Incorporate weight into collision physics.
 * Render chess pieces instead of balls (<https://github.com/lichess-org/lila/tree/master/public/piece/cburnett>)
 * Chess piece objects (position, collision ball radius, colour, weight, friction)

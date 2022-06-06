@@ -117,17 +117,7 @@ function updateGameState() {
                 addVecs(
                     ball.coords,
                     scaleVec(DT, ball.velocity)));
-            var oneDimensionalVelocity = vecLength(ball.velocity);
-            // Distance travelled.
-            var d = DT * oneDimensionalVelocity;
-            var newOneDimensionalVelocity = Math.sqrt(Math.pow(oneDimensionalVelocity, 2) - 2*FRICTION_COEFFICIENT*ball.weight*d);
-            ball.velocity = scaleVec(newOneDimensionalVelocity, toUnitVec(ball.velocity));
-            // Just so balls aren't stuck at a very very small velocity that
-            // will never go to zero.
-            if (Math.abs(ball.velocity.x) + Math.abs(ball.velocity.y) < VELOCITY_FLOOR) {
-                ball.velocity.x = 0;
-                ball.velocity.y = 0;
-            }
+            ball.velocity = applyFriction(ball.velocity, ball.weight);
         }
     });
 
@@ -155,6 +145,17 @@ function updateGameState() {
             balls[i].coords = newCoords[i];
         }
     }
+}
+
+function applyFriction(velocity, mass) {
+    // Not incorporating mass just yet.
+    var newVelocity  = subVec(velocity, scaleVec(DT*(1-FRICTION_COEFFICIENT), velocity));
+    // Just so balls aren't stuck at a very very small velocity that
+    // will never go to zero.
+    if (vecLength(newVelocity) < VELOCITY_FLOOR) {
+        return vec2d(0, 0);
+    }
+    return newVelocity;
 }
 
 function exchangeVelocity(ball, otherBall) {
