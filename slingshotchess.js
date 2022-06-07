@@ -19,12 +19,12 @@ const VELOCITY_SCALE = 0.666;
 const VELOCITY_FLOOR = 0.01;
 
 class Ball {
-    constructor(x, y, radius, colour, weight) {
+    constructor(x, y, radius, colour, mass) {
         this.coords = vec2d(x, y);
         this.velocity = vec2d(0.0, 0.0);
         this.radius = radius;
         this.colour = colour;
-        this.weight = weight;
+        this.mass = mass;
     }
 }
 
@@ -101,7 +101,7 @@ function releaseClick(event) {
     if (targetBall !== null && clickPosition !== null) {
         var velocityChange = scaleVec(VELOCITY_SCALE,
             subVec(clickPosition, getClickPosition(event)));
-        targetBall.velocity = addVecs(targetBall.velocity, velocityChange);
+        targetBall.velocity = addVec(targetBall.velocity, velocityChange);
     }
     targetBall = null;
     clickPosition = null;
@@ -114,10 +114,10 @@ function updateGameState() {
             newCoords.push(ball.coords);
         } else {
             newCoords.push(
-                addVecs(
+                addVec(
                     ball.coords,
                     scaleVec(DT, ball.velocity)));
-            ball.velocity = applyFriction(ball.velocity, ball.weight);
+            ball.velocity = applyFriction(ball.velocity, ball.mass);
         }
     });
 
@@ -159,20 +159,33 @@ function applyFriction(velocity, mass) {
 }
 
 function exchangeVelocity(ball, otherBall) {
-    var v1 = ball.velocity;
-    var v2 = otherBall.velocity;
     var c1 = ball.coords;
     var c2 = otherBall.coords;
-    if (!isZeroVec(v1)) {
-        var v1Component = projectOnto(v1, subVec(c2, c1));
-        ball.velocity = addVecs(ball.velocity, scaleVec(-1, v1Component));
-        otherBall.velocity = addVecs(otherBall.velocity, v1Component);
-    }
-    if (!isZeroVec(v2)) {
-        var v2Component = projectOnto(v2, subVec(c1, c2));
-        ball.velocity = addVecs(ball.velocity, v2Component);
-        otherBall.velocity = addVecs(otherBall.velocity, scaleVec(-1, v2Component));
-    }
+    var m1 = ball.mass;
+    var m2 = otherBall.mass;
+    // Velocity along the line from ball to otherBall.
+    var d = direction(c1, c2);
+    // Projections onto the direction vector.
+    var p1 = projectOnto(ball.velocity, d);
+    var p2 = projectOnto(otherBall.velocity, d);
+    // Finally, the velocity along that direction vector. Positive direction
+    // is wherever the direction vector is pointing.
+    var u1 = Math.sign(dotProduct(p1, d)) * vecLength(p1);
+    var u2 = Math.sign(dotProduct(p2, d)) * vecLength(p2);
+
+    // New velocities along the direction vector!
+    var output = computeOutputVelocities(u1, u2, m1, m2);
+
+    // First remove the old velocity along the direction vector, then
+    // add the new velocity along that direction.
+    ball.velocity = addVec(subVec(ball.velocity, p1), scaleVec(output.v1, d));
+    otherBall.velocity = addVec(subVec(otherBall.velocity, p2), scaleVec(output.v2, d));
+}
+
+function computeOutputVelocities(u1, u2, m1, m2) {
+    // See: https://en.wikipedia.org/wiki/Elastic_collision
+    return {v1: (m1-m2)/(m1+m2)*u1 + 2*m2/(m1+m2)*u2,
+            v2: 2*m1/(m1+m2)*u1 + (m2-m1)/(m1+m2)*u2};
 }
 
 function render() {

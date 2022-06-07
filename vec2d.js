@@ -10,8 +10,7 @@ function vecY(v) {
     return v.y;
 }
 
-// Hmmm, inconsistent naming. addVecs vs. subVec.
-function addVecs(v1, v2) {
+function addVec(v1, v2) {
     return vec2d(v1.x+v2.x, v1.y+v2.y);
 }
 
@@ -46,6 +45,10 @@ function euclideanDistance(v1, v2) {
 
 function dotProduct(v1, v2) {
     return v1.x*v2.x + v1.y*v2.y;
+}
+
+function direction(v1, v2) {
+    return toUnitVec(subVec(v2, v1));
 }
 
 function projectOnto(v1, v2) {
