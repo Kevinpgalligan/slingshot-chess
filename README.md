@@ -1,12 +1,12 @@
 ## TODO
-* Render chess pieces instead of balls (<https://github.com/lichess-org/lila/tree/master/public/piece/cburnett>)
-* Chess piece objects (position, collision ball radius, colour, weight, friction)
-* Black & white teams take turns
-* Piece disappears if it goes out of bounds
-* Winner knocks out other team's king
-* Special piece properties: knight jumps, rook can lock in place, maybe piece direction is restricted
-* Menu / interface
-* EVENTUALLY: sandbox mode, online multiplayer (networking, open lobby, private games, time per player)
+* Get full chess set to render (1. scale piece to board size, 2. draw piece centered at its coordinates, 3. load all the chess pieces in the appropriate spot, 4. tweak collision circle to appropriate size for each piece).
+* Max board size.
+* Piece disappears if it goes out of bounds.
+* Black & white teams take turns.
+* Winner knocks out other team's king.
+* Special piece properties: knight jumps, rook can lock in place, maybe piece direction is restricted.
+* Menu / interface.
+* EVENTUALLY: sandbox mode, online multiplayer (networking, open lobby, private games, time per player).
 
 ## References
 * Collision physics: <https://en.wikipedia.org/wiki/Elastic_collision>
