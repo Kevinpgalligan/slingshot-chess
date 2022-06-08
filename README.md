@@ -1,6 +1,6 @@
 ## TODO
-* Get full chess set to render (1. scale piece to board size, 2. draw piece centered at its coordinates, 3. load all the chess pieces in the appropriate spot, 4. tweak collision circle to appropriate size for each piece).
 * Max board size.
+* Sandbox mode with tweakable mass / velocity / collision radius.
 * Piece disappears if it goes out of bounds.
 * Black & white teams take turns.
 * Winner knocks out other team's king.
