@@ -5,6 +5,7 @@ const MILLIS_BETWEEN_TIMESTEPS = 1000/TIMESTEPS_PER_SECOND;
 const MAX_RENDER_SKIPS = 5;
 const DT = MILLIS_BETWEEN_TIMESTEPS/1000.0;
 
+const MAX_WORLD_SIZE_PIXELS = 600;
 const SQUARE_WIDTH = 100;
 const PIECE_WIDTH = 90;
 const BOARD_SQUARES = 8;
@@ -21,8 +22,10 @@ const FRICTION_COEFFICIENT = 0.6;
 const VELOCITY_SCALE = 0.666;
 const VELOCITY_FLOOR = 0.01;
 
-// How to convert SVG to base64:
-// https://dirask.com/posts/Bash-convert-svg-to-base64-data-url-DnKqAp
+const MAX_DRAG_DISTANCE = 300;
+const DRAG_CIRCLE_RADIUS = 20;
+const DRAG_CIRCLE_COLOUR = "#7e7b7b";
+const NUM_DRAG_CIRCLES = 3;
 
 // Lichess cburnett pieces encoded in base64.
 // Available under the GNU Affero General Public License.
@@ -81,11 +84,19 @@ PIECE_COLLISION_RADII[PieceType.Queen] = 25;
 
 const PIECE_MASS = {};
 PIECE_MASS[PieceType.Pawn] = 1;
-PIECE_MASS[PieceType.Rook] = 1;
-PIECE_MASS[PieceType.Bishop] = 1;
-PIECE_MASS[PieceType.Knight] = 1;
-PIECE_MASS[PieceType.King] = 1;
-PIECE_MASS[PieceType.Queen] = 1;
+PIECE_MASS[PieceType.Rook] = 5;
+PIECE_MASS[PieceType.Bishop] = 3;
+PIECE_MASS[PieceType.Knight] = 3;
+PIECE_MASS[PieceType.King] = 4;
+PIECE_MASS[PieceType.Queen] = 9;
+
+const PIECE_MAX_LAUNCH_VELOCITY = {};
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Pawn] = 80;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Rook] = 200;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Bishop] = 200;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Knight] = 120;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.King] = 80;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Queen] = 200;
 
 class PieceInfo {
 	constructor(colour, type) {
@@ -112,6 +123,10 @@ class Piece {
 	mass() {
 		return PIECE_MASS[this.info.type];
 	}
+
+    maxVelocity() {
+        return PIECE_MAX_LAUNCH_VELOCITY[this.info.type];
+    }
 }
 
 function piecesIntersect(b1, b2) {
@@ -165,12 +180,17 @@ var unitLengthsPerPixel = 0;
 var clickPosition = null;
 var targetPiece = null;
 
+var currentMousePosition = null;
+
 function init() {
     window.addEventListener('mousedown', function(e) {
         storeClickPosition(e);
     });
     window.addEventListener('mouseup', function(e) {
         releaseClick(e);
+    });
+    window.addEventListener('mousemove', function(e) {
+        storeCurrentMousePosition(e);
     });
 }
 
@@ -212,14 +232,25 @@ function storeClickPosition(event) {
     }
 }
 
+function storeCurrentMousePosition(event) {
+    currentMousePosition = getClickPosition(event);
+}
+
 function releaseClick(event) {
     if (targetPiece !== null && clickPosition !== null) {
-        var velocityChange = scaleVec(VELOCITY_SCALE,
-            subVec(clickPosition, getClickPosition(event)));
+        var drag = getDragVec(getClickPosition(event));
+        // Direction.
+        var d = toUnitVec(drag);
+        var speed = Math.min(targetPiece.maxVelocity(), VELOCITY_SCALE * vecLength(drag));
+        var velocityChange = scaleVec(speed, d);
         targetPiece.velocity = addVec(targetPiece.velocity, velocityChange);
     }
     targetPiece = null;
     clickPosition = null;
+}
+
+function getDragVec(newPosition) {
+    return subVec(clickPosition, newPosition);
 }
 
 function updateGameState() {
@@ -305,13 +336,14 @@ function computeOutputVelocities(u1, u2, m1, m2) {
 
 function render() {
     // This can change as the user resizes the window.
-    canvas.width = Math.min(window.innerHeight, window.innerWidth);
+    canvas.width = Math.min(MAX_WORLD_SIZE_PIXELS, window.innerHeight, window.innerWidth);
     canvas.height = canvas.width;
     pixelsPerUnitLength = canvas.width/WORLD_WIDTH;
     unitLengthsPerPixel = WORLD_WIDTH/canvas.width;
     drawBackground();
     drawBoard();
     pieces.forEach(drawPiece);
+    drawAimingCircles();
 }
 
 function toPixels(length) {
@@ -351,11 +383,20 @@ function drawPiece(piece) {
     ctx.drawImage(piece.getImage(), topLeftCornerX, topLeftCornerY,
 				  toPixels(PIECE_WIDTH), toPixels(PIECE_WIDTH));
     if (DEBUG_DRAW_COLLISION_CIRCLES) {
-        ctx.beginPath()
-        ctx.arc(xPixels, yPixels, toPixels(piece.radius()), 0, 2*Math.PI, false);
-		ctx.lineWidth = 2;
-		ctx.strokeStyle = "#FF0000";
-        ctx.stroke()
+        drawCircle(piece.coords.x, piece.coords.y, piece.radius(), "#FF0000", false);
+    }
+}
+
+function drawCircle(x, y, radius, colour, fill) {
+    ctx.beginPath();
+    ctx.arc(toPixels(x), yToPixels(y), toPixels(radius), 0, 2*Math.PI, false);
+    if (fill) {
+        ctx.fillStyle = colour;
+        ctx.fill();
+    } else {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = colour;
+        ctx.stroke();
     }
 }
 
@@ -389,4 +430,26 @@ function boardIndexToCoord(i) {
 
 function drawRectangle(x, y, width, height) {
     ctx.fillRect(toPixels(x), yToPixels(y), toPixels(width), toPixels(height));
+}
+
+function drawAimingCircles() {
+    if (targetPiece !== null && clickPosition !== null) {
+        var drag = getDragVec(currentMousePosition);
+        var dragLength = vecLength(drag);
+        if (dragLength > 0) {
+            var dragDir = toUnitVec(drag);
+            ctx.save();
+            ctx.globalAlpha = 0.8;
+            for (var i = 0; i < NUM_DRAG_CIRCLES; i += 1) {
+                var circleCoords = addVec(
+                    clickPosition,
+                    scaleVec(Math.min(MAX_DRAG_DISTANCE,
+                                      (i/(NUM_DRAG_CIRCLES-1))*dragLength),
+                             dragDir));
+                drawCircle(circleCoords.x, circleCoords.y,
+                           DRAG_CIRCLE_COLOUR, DRAG_CIRCLE_RADIUS, true);
+            }
+            ctx.restore();
+        }
+    }
 }
