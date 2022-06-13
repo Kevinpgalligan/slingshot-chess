@@ -19,12 +19,11 @@ const WHITE_COLOUR = "#F0D9B5";
 const BLACK_COLOUR = "#B58863";
 
 const FRICTION_COEFFICIENT = 0.6;
-const VELOCITY_SCALE = 0.666;
 const VELOCITY_FLOOR = 0.01;
 
-const MAX_DRAG_DISTANCE = 300;
-const DRAG_CIRCLE_RADIUS = 20;
-const DRAG_CIRCLE_COLOUR = "#7e7b7b";
+const MAX_DRAG_DISTANCE = 200;
+const DRAG_CIRCLE_RADIUS = 15;
+const DRAG_CIRCLE_COLOUR = "#7e7e7eAA";
 const NUM_DRAG_CIRCLES = 3;
 
 // Lichess cburnett pieces encoded in base64.
@@ -241,7 +240,8 @@ function releaseClick(event) {
         var drag = getDragVec(getClickPosition(event));
         // Direction.
         var d = toUnitVec(drag);
-        var speed = Math.min(targetPiece.maxVelocity(), VELOCITY_SCALE * vecLength(drag));
+        var dragDistance = Math.min(MAX_DRAG_DISTANCE, vecLength(drag));
+        var speed = (dragDistance / MAX_DRAG_DISTANCE) * piece.maxVelocity();
         var velocityChange = scaleVec(speed, d);
         targetPiece.velocity = addVec(targetPiece.velocity, velocityChange);
     }
@@ -438,18 +438,15 @@ function drawAimingCircles() {
         var dragLength = vecLength(drag);
         if (dragLength > 0) {
             var dragDir = toUnitVec(drag);
-            ctx.save();
-            ctx.globalAlpha = 0.8;
             for (var i = 0; i < NUM_DRAG_CIRCLES; i += 1) {
                 var circleCoords = addVec(
-                    clickPosition,
-                    scaleVec(Math.min(MAX_DRAG_DISTANCE,
-                                      (i/(NUM_DRAG_CIRCLES-1))*dragLength),
+                    targetPiece.coords,
+                    scaleVec((i/(NUM_DRAG_CIRCLES-1))
+                              * Math.min(MAX_DRAG_DISTANCE, dragLength),
                              dragDir));
                 drawCircle(circleCoords.x, circleCoords.y,
-                           DRAG_CIRCLE_COLOUR, DRAG_CIRCLE_RADIUS, true);
+                           DRAG_CIRCLE_RADIUS, DRAG_CIRCLE_COLOUR, true);
             }
-            ctx.restore();
         }
     }
 }
