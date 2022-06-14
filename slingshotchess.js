@@ -19,6 +19,11 @@ const WHITE_COLOUR = "#F0D9B5";
 const BLACK_COLOUR = "#B58863";
 
 const FRICTION_COEFFICIENT = 0.6;
+// The so-called coefficient of restitution, between 0 and 1.
+// When it's 1, it's an elastic collision. When
+// it's 0, it's a perfectly inelastic collision.
+// See: https://en.wikipedia.org/wiki/Inelastic_collision
+const COLLISION_COEFFICIENT = 0.7;
 const VELOCITY_FLOOR = 0.01;
 
 const MAX_DRAG_DISTANCE = 200;
@@ -330,8 +335,10 @@ function exchangeVelocity(piece, otherPiece) {
 
 function computeOutputVelocities(u1, u2, m1, m2) {
     // See: https://en.wikipedia.org/wiki/Elastic_collision
-    return {v1: (m1-m2)/(m1+m2)*u1 + 2*m2/(m1+m2)*u2,
-            v2: 2*m1/(m1+m2)*u1 + (m2-m1)/(m1+m2)*u2};
+    //      https://en.wikipedia.org/wiki/Inelastic_collision
+    const C = COLLISION_COEFFICIENT;
+    return {v1: (C*m2*(u2-u1) + m1*u1 + m2*u2)/(m1+m2),
+            v2: (C*m1*(u1-u2) + m1*u1 + m2*u2)/(m1+m2)};
 }
 
 function render() {

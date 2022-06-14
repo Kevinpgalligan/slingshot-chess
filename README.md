@@ -1,10 +1,9 @@
 ## TODO
-* Some velocity is lost when pieces collide.
 * Piece disappears if it goes out of bounds (potentially useful: https://stackoverflow.com/questions/31708618/draw-image-with-opacity-on-to-a-canvas).
-* Fix bug where the game speeds up dramatically.
 * Black & white teams take turns.
 * Winner knocks out other team's king.
 * Special piece properties: knight jumps, rook can lock in place, maybe piece direction is restricted.
+* Fix bug where the game speeds up dramatically.
 * EVENTUALLY, maybe: menu / interface, sandbox mode, online multiplayer (networking, open lobby, private games, time per player).
 
 ## References
