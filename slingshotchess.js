@@ -1,4 +1,4 @@
-const DEBUG_DRAW_COLLISION_CIRCLES = true;
+const DEBUG_DRAW_COLLISION_CIRCLES = false;
 
 const TIMESTEPS_PER_SECOND = 30;
 const MILLIS_BETWEEN_TIMESTEPS = 1000/TIMESTEPS_PER_SECOND;
@@ -10,7 +10,8 @@ const SQUARE_WIDTH = 100;
 const PIECE_WIDTH = 90;
 const BOARD_SQUARES = 8;
 const BOUNDARY_WIDTH = 100
-const BOUNDARY_AND_BOARD_WIDTH = 2*BOUNDARY_WIDTH + BOARD_SQUARES*SQUARE_WIDTH;
+const BOARD_WIDTH = BOARD_SQUARES*SQUARE_WIDTH;
+const BOUNDARY_AND_BOARD_WIDTH = 2*BOUNDARY_WIDTH + BOARD_WIDTH;
 const BOARD_OFFSET = BOUNDARY_WIDTH;
 const WORLD_WIDTH = BOUNDARY_AND_BOARD_WIDTH
 
@@ -296,6 +297,14 @@ function updateGameState() {
             pieces[i].coords = newCoords[i];
         }
     }
+    var i = 0;
+    while (i < pieces.length) {
+        if (outsideBoardArea(pieces[i])) {
+            pieces.splice(i, 1);
+        } else {
+            i += 1;
+        }
+    }
 }
 
 function applyFriction(velocity, mass) {
@@ -339,6 +348,13 @@ function computeOutputVelocities(u1, u2, m1, m2) {
     const C = COLLISION_COEFFICIENT;
     return {v1: (C*m2*(u2-u1) + m1*u1 + m2*u2)/(m1+m2),
             v2: (C*m1*(u1-u2) + m1*u1 + m2*u2)/(m1+m2)};
+}
+
+function outsideBoardArea(piece) {
+    return piece.coords.x < BOARD_OFFSET
+        || piece.coords.x > BOARD_OFFSET + BOARD_WIDTH
+        || piece.coords.y < BOARD_OFFSET
+        || piece.coords.y > BOARD_OFFSET + BOARD_WIDTH;
 }
 
 function render() {
@@ -391,6 +407,14 @@ function drawPiece(piece) {
 				  toPixels(PIECE_WIDTH), toPixels(PIECE_WIDTH));
     if (DEBUG_DRAW_COLLISION_CIRCLES) {
         drawCircle(piece.coords.x, piece.coords.y, piece.radius(), "#FF0000", false);
+    } else if (targetPiece !== null) {
+        var colour;
+        if (targetPiece === piece) {
+            colour = "#00e0007e";
+        } else {
+            colour = "#7e00007e";
+        }
+        drawCircle(piece.coords.x, piece.coords.y, piece.radius(), colour, false);
     }
 }
 
