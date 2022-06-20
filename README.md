@@ -1,9 +1,10 @@
 ## TODO
-* Black & white teams take turns.
 * Winner knocks out other team's king.
-* Special piece properties: knight jumps, rook can lock in place, pawns can promote
+* Waiting stage in between turns, until pieces stop moving.
+* Rebalance weights & velocities, queen is OP.
 * Visual effect for a piece getting knocked out (potentially useful: https://stackoverflow.com/questions/31708618/draw-image-with-opacity-on-to-a-canvas).
-* Fix bug where the game speeds up dramatically.
+* Special piece properties: knight jumps, rook can lock in place, pawns can promote
+* BUG: game speeds up dramatically after JavaScript stops executing for a while.
 * EVENTUALLY, maybe: menu / interface, sandbox mode, online multiplayer (networking, open lobby, private games, time per player).
 
 ## References

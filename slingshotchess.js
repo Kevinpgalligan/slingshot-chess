@@ -19,7 +19,7 @@ const BACKGROUND_COLOUR = "#000055";
 const WHITE_COLOUR = "#F0D9B5";
 const BLACK_COLOUR = "#B58863";
 
-const FRICTION_COEFFICIENT = 0.6;
+const FRICTION_COEFFICIENT = 0.4;
 // The so-called coefficient of restitution, between 0 and 1.
 // When it's 1, it's an elastic collision. When
 // it's 0, it's a perfectly inelastic collision.
@@ -31,6 +31,11 @@ const MAX_DRAG_DISTANCE = 200;
 const DRAG_CIRCLE_RADIUS = 15;
 const DRAG_CIRCLE_COLOUR = "#7e7e7eAA";
 const NUM_DRAG_CIRCLES = 3;
+
+const TURN_INDICATOR_WIDTH = 250;
+const TURN_INDICATOR_HEIGHT = 40;
+const TURN_INDICATOR_TEXT_OFFSET = 10;
+const TURN_INDICATOR_FONT_SIZE = 15;
 
 // Lichess cburnett pieces encoded in base64.
 // Available under the GNU Affero General Public License.
@@ -88,20 +93,22 @@ PIECE_COLLISION_RADII[PieceType.King] = 25;
 PIECE_COLLISION_RADII[PieceType.Queen] = 25;
 
 const PIECE_MASS = {};
-PIECE_MASS[PieceType.Pawn] = 1;
-PIECE_MASS[PieceType.Rook] = 5;
+PIECE_MASS[PieceType.Pawn] = 2;
+PIECE_MASS[PieceType.Rook] = 4;
 PIECE_MASS[PieceType.Bishop] = 3;
 PIECE_MASS[PieceType.Knight] = 3;
 PIECE_MASS[PieceType.King] = 4;
-PIECE_MASS[PieceType.Queen] = 9;
+PIECE_MASS[PieceType.Queen] = 5;
 
 const PIECE_MAX_LAUNCH_VELOCITY = {};
-PIECE_MAX_LAUNCH_VELOCITY[PieceType.Pawn] = 80;
-PIECE_MAX_LAUNCH_VELOCITY[PieceType.Rook] = 200;
-PIECE_MAX_LAUNCH_VELOCITY[PieceType.Bishop] = 200;
-PIECE_MAX_LAUNCH_VELOCITY[PieceType.Knight] = 120;
-PIECE_MAX_LAUNCH_VELOCITY[PieceType.King] = 80;
-PIECE_MAX_LAUNCH_VELOCITY[PieceType.Queen] = 200;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Pawn] = 120;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Rook] = 300;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Bishop] = 300;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Knight] = 225;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.King] = 120;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Queen] = 300;
+
+var teamToMove = PieceColour.White;
 
 class PieceInfo {
 	constructor(colour, type) {
@@ -229,7 +236,7 @@ function getClickPosition(event) {
 function storeClickPosition(event) {
     var potentialClickPosition = getClickPosition(event);
     for (piece of pieces) {
-        if (pieceContains(piece, potentialClickPosition)) {
+        if (piece.info.colour == teamToMove && pieceContains(piece, potentialClickPosition)) {
             targetPiece = piece;
             clickPosition = potentialClickPosition;
             break;
@@ -244,15 +251,27 @@ function storeCurrentMousePosition(event) {
 function releaseClick(event) {
     if (targetPiece !== null && clickPosition !== null) {
         var drag = getDragVec(getClickPosition(event));
-        // Direction.
-        var d = toUnitVec(drag);
-        var dragDistance = Math.min(MAX_DRAG_DISTANCE, vecLength(drag));
-        var speed = (dragDistance / MAX_DRAG_DISTANCE) * piece.maxVelocity();
-        var velocityChange = scaleVec(speed, d);
-        targetPiece.velocity = addVec(targetPiece.velocity, velocityChange);
+        var dragLength = vecLength(drag);
+        if (dragLength > 0) {
+            // Direction.
+            var d = toUnitVec(drag);
+            var dragDistance = Math.min(MAX_DRAG_DISTANCE, dragLength);
+            var speed = (dragDistance / MAX_DRAG_DISTANCE) * piece.maxVelocity();
+            var velocityChange = scaleVec(speed, d);
+            targetPiece.velocity = addVec(targetPiece.velocity, velocityChange);
+            changeTeamToMove();
+        }
     }
     targetPiece = null;
     clickPosition = null;
+}
+
+function changeTeamToMove() {
+    if (teamToMove == PieceColour.White) {
+        teamToMove = PieceColour.Black;
+    } else {
+        teamToMove = PieceColour.White;
+    }
 }
 
 function getDragVec(newPosition) {
@@ -367,6 +386,36 @@ function render() {
     drawBoard();
     pieces.forEach(drawPiece);
     drawAimingCircles();
+    drawOverlay();
+}
+
+function drawOverlay() {
+    var bgColour, textColour, text;
+    if (teamToMove == PieceColour.White) {
+        bgColour = "#FFFFFF";
+        textColour = "#000000";
+        text = "white to play";
+    } else {
+        bgColour = "#000000";
+        textColour = "#FFFFFF";
+        text = "black to play";
+    }
+    drawRectangle(WORLD_WIDTH-TURN_INDICATOR_WIDTH,
+                  TURN_INDICATOR_HEIGHT,
+                  TURN_INDICATOR_WIDTH,
+                  TURN_INDICATOR_HEIGHT,
+                  bgColour);
+    drawText(text,
+             WORLD_WIDTH-TURN_INDICATOR_WIDTH+TURN_INDICATOR_TEXT_OFFSET,
+             TURN_INDICATOR_TEXT_OFFSET,
+             TURN_INDICATOR_FONT_SIZE,
+             textColour);
+}
+
+function drawText(text, x, y, fontSizeInPixels, colour) {
+    ctx.fillStyle = colour;
+    ctx.font = fontSizeInPixels + "px monospace";
+    ctx.fillText(text, toPixels(x), yToPixels(y));
 }
 
 function toPixels(length) {
@@ -434,14 +483,14 @@ function drawCircle(x, y, radius, colour, fill) {
 function fillSquares(colour, initialX) {
     // Considering bottom left square to have board coordinates (0, 0).
     // Need to convert this to "world" coordinates.
-    ctx.fillStyle = colour;
     var xIndex = initialX;
     var yIndex = 0;
     while (yIndex < BOARD_SQUARES) {
         drawRectangle(boardIndexToCoord(xIndex) - SQUARE_WIDTH/2,
                       boardIndexToCoord(yIndex+1) - SQUARE_WIDTH/2,
                       SQUARE_WIDTH,
-                      SQUARE_WIDTH);
+                      SQUARE_WIDTH,
+                      colour);
         xIndex += 2;
         if (xIndex >= BOARD_SQUARES) {
             if (xIndex == BOARD_SQUARES) {
@@ -459,7 +508,8 @@ function boardIndexToCoord(i) {
 	return BOARD_OFFSET + i*SQUARE_WIDTH + SQUARE_WIDTH/2;
 }
 
-function drawRectangle(x, y, width, height) {
+function drawRectangle(x, y, width, height, colour) {
+    ctx.fillStyle = colour;
     ctx.fillRect(toPixels(x), yToPixels(y), toPixels(width), toPixels(height));
 }
 
