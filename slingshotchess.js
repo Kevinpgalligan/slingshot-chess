@@ -15,7 +15,7 @@ const BOUNDARY_AND_BOARD_WIDTH = 2*BOUNDARY_WIDTH + BOARD_WIDTH;
 const BOARD_OFFSET = BOUNDARY_WIDTH;
 const WORLD_WIDTH = BOUNDARY_AND_BOARD_WIDTH
 
-const BACKGROUND_COLOUR = "#000055";
+const BACKGROUND_COLOUR = "#ADD8E6";
 const WHITE_COLOUR = "#F0D9B5";
 const BLACK_COLOUR = "#B58863";
 
@@ -109,6 +109,8 @@ PIECE_MAX_LAUNCH_VELOCITY[PieceType.King] = 120;
 PIECE_MAX_LAUNCH_VELOCITY[PieceType.Queen] = 300;
 
 var teamToMove = PieceColour.White;
+var winningTeam = null;
+var gameOver = false;
 
 class PieceInfo {
 	constructor(colour, type) {
@@ -194,6 +196,10 @@ var targetPiece = null;
 
 var currentMousePosition = null;
 
+var kingDead = {};
+kingDead[PieceColour.White] = false;
+kingDead[PieceColour.Black] = false;
+
 function init() {
     window.addEventListener('mousedown', function(e) {
         storeClickPosition(e);
@@ -234,12 +240,14 @@ function getClickPosition(event) {
 }
 
 function storeClickPosition(event) {
-    var potentialClickPosition = getClickPosition(event);
-    for (piece of pieces) {
-        if (piece.info.colour == teamToMove && pieceContains(piece, potentialClickPosition)) {
-            targetPiece = piece;
-            clickPosition = potentialClickPosition;
-            break;
+    if (!gameOver) {
+        var potentialClickPosition = getClickPosition(event);
+        for (piece of pieces) {
+            if (piece.info.colour == teamToMove && pieceContains(piece, potentialClickPosition)) {
+                targetPiece = piece;
+                clickPosition = potentialClickPosition;
+                break;
+            }
         }
     }
 }
@@ -249,7 +257,9 @@ function storeCurrentMousePosition(event) {
 }
 
 function releaseClick(event) {
-    if (targetPiece !== null && clickPosition !== null) {
+    if (targetPiece !== null
+            && clickPosition !== null
+            && !gameOver) {
         var drag = getDragVec(getClickPosition(event));
         var dragLength = vecLength(drag);
         if (dragLength > 0) {
@@ -316,12 +326,25 @@ function updateGameState() {
             pieces[i].coords = newCoords[i];
         }
     }
+
     var i = 0;
     while (i < pieces.length) {
         if (outsideBoardArea(pieces[i])) {
+            if (pieces[i].info.type === PieceType.King) {
+                kingDead[pieces[i].info.colour] = true;
+                gameOver = true;
+            }
             pieces.splice(i, 1);
         } else {
             i += 1;
+        }
+    }
+    
+    if (gameOver) {
+        if (kingDead[PieceColour.White]) {
+            winningTeam = PieceColour.Black;
+        } else {
+            winningTeam = PieceColour.White;
         }
     }
 }
@@ -391,7 +414,18 @@ function render() {
 
 function drawOverlay() {
     var bgColour, textColour, text;
-    if (teamToMove == PieceColour.White) {
+    if (gameOver) {
+        if (winningTeam === PieceColour.White) {
+            bgColour = "#FFFFFF";
+            textColour = "#000000";
+            text = "white wins!";
+        } else {
+            bgColour = "#000000";
+            textColour = "#FFFFFF";
+            text = "black wins!";
+        }
+    }
+    else if (teamToMove === PieceColour.White) {
         bgColour = "#FFFFFF";
         textColour = "#000000";
         text = "white to play";
