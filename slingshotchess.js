@@ -35,7 +35,7 @@ const NUM_DRAG_CIRCLES = 3;
 const TURN_INDICATOR_WIDTH = 250;
 const TURN_INDICATOR_HEIGHT = 40;
 const TURN_INDICATOR_TEXT_OFFSET = 10;
-const TURN_INDICATOR_FONT_SIZE = 15;
+const TURN_INDICATOR_FONT_SIZE = 25;
 
 // Lichess cburnett pieces encoded in base64.
 // Available under the GNU Affero General Public License.
@@ -446,9 +446,9 @@ function drawOverlay() {
              textColour);
 }
 
-function drawText(text, x, y, fontSizeInPixels, colour) {
+function drawText(text, x, y, fontSize, colour) {
     ctx.fillStyle = colour;
-    ctx.font = fontSizeInPixels + "px monospace";
+    ctx.font = toPixels(fontSize) + "px monospace";
     ctx.fillText(text, toPixels(x), yToPixels(y));
 }
 
