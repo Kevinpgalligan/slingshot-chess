@@ -8,8 +8,8 @@ MILLIS_BETWEEN_TIMESTEPS = 1000/TIMESTEPS_PER_SECOND;
 DT = MILLIS_BETWEEN_TIMESTEPS/1000.0;
 
 def main():
-    coefficients = [.4, .6, .8,]
-    speeds = [80, 120, 200]
+    coefficients = [.2, .4, .6,]
+    speeds = [120, 160, 200]
     timesteps = 1000
 
     for C in coefficients:

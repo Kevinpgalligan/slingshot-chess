@@ -1,6 +1,4 @@
 ## TODO
-* Waiting stage in between turns, until pieces stop moving.
-* Rebalance weights & velocities, queen is OP.
 * Visual effect for a piece getting knocked out (potentially useful: https://stackoverflow.com/questions/31708618/draw-image-with-opacity-on-to-a-canvas).
 * Special piece properties: knight jumps, rook can lock in place, pawns can promote
 * BUG: game speeds up dramatically after JavaScript stops executing for a while.

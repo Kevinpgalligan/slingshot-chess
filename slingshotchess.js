@@ -19,20 +19,21 @@ const BACKGROUND_COLOUR = "#ADD8E6";
 const WHITE_COLOUR = "#F0D9B5";
 const BLACK_COLOUR = "#B58863";
 
-const FRICTION_COEFFICIENT = 0.4;
+const FRICTION_COEFFICIENT = 0.2;
 // The so-called coefficient of restitution, between 0 and 1.
-// When it's 1, it's an elastic collision. When
+// When it's 1, it's an elastic collision (all energy conserved). When
 // it's 0, it's a perfectly inelastic collision.
 // See: https://en.wikipedia.org/wiki/Inelastic_collision
-const COLLISION_COEFFICIENT = 0.7;
-const VELOCITY_FLOOR = 0.01;
+const COLLISION_COEFFICIENT = 0.5;
+const VELOCITY_FLOOR = 15;
 
 const MAX_DRAG_DISTANCE = 200;
+const MIN_DRAG_DISTANCE = 20;
 const DRAG_CIRCLE_RADIUS = 15;
 const DRAG_CIRCLE_COLOUR = "#7e7e7eAA";
 const NUM_DRAG_CIRCLES = 3;
 
-const TURN_INDICATOR_WIDTH = 250;
+const TURN_INDICATOR_WIDTH = 275;
 const TURN_INDICATOR_HEIGHT = 40;
 const TURN_INDICATOR_TEXT_OFFSET = 10;
 const TURN_INDICATOR_FONT_SIZE = 25;
@@ -94,23 +95,28 @@ PIECE_COLLISION_RADII[PieceType.Queen] = 25;
 
 const PIECE_MASS = {};
 PIECE_MASS[PieceType.Pawn] = 2;
-PIECE_MASS[PieceType.Rook] = 4;
-PIECE_MASS[PieceType.Bishop] = 3;
-PIECE_MASS[PieceType.Knight] = 3;
-PIECE_MASS[PieceType.King] = 4;
-PIECE_MASS[PieceType.Queen] = 5;
+PIECE_MASS[PieceType.Rook] = 2.7;
+PIECE_MASS[PieceType.Bishop] = 2.3;
+PIECE_MASS[PieceType.Knight] = 2.3;
+PIECE_MASS[PieceType.King] = 2.1;
+PIECE_MASS[PieceType.Queen] = 3;
 
 const PIECE_MAX_LAUNCH_VELOCITY = {};
-PIECE_MAX_LAUNCH_VELOCITY[PieceType.Pawn] = 120;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Pawn] = 180;
 PIECE_MAX_LAUNCH_VELOCITY[PieceType.Rook] = 300;
 PIECE_MAX_LAUNCH_VELOCITY[PieceType.Bishop] = 300;
-PIECE_MAX_LAUNCH_VELOCITY[PieceType.Knight] = 225;
-PIECE_MAX_LAUNCH_VELOCITY[PieceType.King] = 120;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.Knight] = 250;
+PIECE_MAX_LAUNCH_VELOCITY[PieceType.King] = 180;
 PIECE_MAX_LAUNCH_VELOCITY[PieceType.Queen] = 300;
 
 var teamToMove = PieceColour.White;
 var winningTeam = null;
 var gameOver = false;
+var turnInProgress = false;
+
+var kingDead = {};
+kingDead[PieceColour.White] = false;
+kingDead[PieceColour.Black] = false;
 
 class PieceInfo {
 	constructor(colour, type) {
@@ -196,10 +202,6 @@ var targetPiece = null;
 
 var currentMousePosition = null;
 
-var kingDead = {};
-kingDead[PieceColour.White] = false;
-kingDead[PieceColour.Black] = false;
-
 function init() {
     window.addEventListener('mousedown', function(e) {
         storeClickPosition(e);
@@ -240,7 +242,7 @@ function getClickPosition(event) {
 }
 
 function storeClickPosition(event) {
-    if (!gameOver) {
+    if (launchAllowed()) {
         var potentialClickPosition = getClickPosition(event);
         for (piece of pieces) {
             if (piece.info.colour == teamToMove && pieceContains(piece, potentialClickPosition)) {
@@ -252,17 +254,19 @@ function storeClickPosition(event) {
     }
 }
 
+function launchAllowed() {
+    return !gameOver && !turnInProgress;
+}
+
 function storeCurrentMousePosition(event) {
     currentMousePosition = getClickPosition(event);
 }
 
 function releaseClick(event) {
-    if (targetPiece !== null
-            && clickPosition !== null
-            && !gameOver) {
+    if (targetPiece !== null && clickPosition !== null && launchAllowed()) {
         var drag = getDragVec(getClickPosition(event));
         var dragLength = vecLength(drag);
-        if (dragLength > 0) {
+        if (dragLength > MIN_DRAG_DISTANCE) {
             // Direction.
             var d = toUnitVec(drag);
             var dragDistance = Math.min(MAX_DRAG_DISTANCE, dragLength);
@@ -270,6 +274,7 @@ function releaseClick(event) {
             var velocityChange = scaleVec(speed, d);
             targetPiece.velocity = addVec(targetPiece.velocity, velocityChange);
             changeTeamToMove();
+            turnInProgress = true;
         }
     }
     targetPiece = null;
@@ -289,10 +294,12 @@ function getDragVec(newPosition) {
 }
 
 function updateGameState() {
+    var stationaryPieces = 0;
     var newCoords = [];
     pieces.forEach(piece => {
         if (isZeroVec(piece.velocity)) {
             newCoords.push(piece.coords);
+            stationaryPieces += 1;
         } else {
             newCoords.push(
                 addVec(
@@ -301,6 +308,9 @@ function updateGameState() {
             piece.velocity = applyFriction(piece.velocity, piece.mass());
         }
     });
+    if (stationaryPieces === pieces.length) {
+        turnInProgress = false;
+    }
 
     // Check for collisions between the pieces at their
     // new positions. If a piece is in a collision, freeze
@@ -424,8 +434,11 @@ function drawOverlay() {
             textColour = "#FFFFFF";
             text = "black wins!";
         }
-    }
-    else if (teamToMove === PieceColour.White) {
+    } else if (turnInProgress) {
+        bgColour = "#999999";
+        textColour = "#FFFFFF";
+        text = "turn in progress";
+    } else if (teamToMove === PieceColour.White) {
         bgColour = "#FFFFFF";
         textColour = "#000000";
         text = "white to play";
