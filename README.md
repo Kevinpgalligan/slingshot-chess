@@ -1,8 +1,7 @@
-## TODO
-* Visual effect for a piece getting knocked out (potentially useful: https://stackoverflow.com/questions/31708618/draw-image-with-opacity-on-to-a-canvas).
-* Special piece properties: knight jumps, rook can lock in place, pawns can promote
-* BUG: game speeds up dramatically after JavaScript stops executing for a while.
-* EVENTUALLY, maybe: menu / interface, sandbox mode, online multiplayer (networking, open lobby, private games, time per player).
+## Description
+A version of chess where you launch your pieces at the enemy and try to knock their king off the edge of the board.
+
+To play it, clone the repo and open `index.html`. It can also be played [on my website](https://www.kevingal.com/apps/slingshotchess.html).
 
 ## References
 * Collision physics: <https://en.wikipedia.org/wiki/Elastic_collision>
