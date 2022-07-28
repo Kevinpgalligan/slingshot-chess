@@ -27,6 +27,10 @@ const FRICTION_COEFFICIENT = 0.2;
 const COLLISION_COEFFICIENT = 0.5;
 const VELOCITY_FLOOR = 15;
 
+const COLLISION_CIRCLE_NONTARGET_COLOUR = "#7e00007e";
+const COLLISION_CIRCLE_TARGET_COLOUR = "#00e0007e";
+const COLLISION_CIRCLE_DEBUG_COLOUR = "#FF0000";
+
 const MAX_DRAG_DISTANCE = 200;
 const MIN_DRAG_DISTANCE = 20;
 const DRAG_CIRCLE_RADIUS = 15;
@@ -502,13 +506,13 @@ function drawPiece(piece) {
     ctx.drawImage(piece.getImage(), topLeftCornerX, topLeftCornerY,
 				  toPixels(PIECE_WIDTH), toPixels(PIECE_WIDTH));
     if (DEBUG_DRAW_COLLISION_CIRCLES) {
-        drawCircle(piece.coords.x, piece.coords.y, piece.radius(), "#FF0000", false);
+        drawCircle(piece.coords.x, piece.coords.y, piece.radius(), COLLISION_CIRCLE_DEBUG_COLOUR, false);
     } else if (targetPiece !== null) {
         var colour;
         if (targetPiece === piece) {
-            colour = "#00e0007e";
+            colour = COLLISION_CIRCLE_TARGET_COLOUR;
         } else {
-            colour = "#7e00007e";
+            colour = COLLISION_CIRCLE_NONTARGET_COLOUR;
         }
         drawCircle(piece.coords.x, piece.coords.y, piece.radius(), colour, false);
     }
@@ -525,6 +529,19 @@ function drawCircle(x, y, radius, colour, fill) {
         ctx.strokeStyle = colour;
         ctx.stroke();
     }
+}
+
+function drawCross(x, y, radius, colour) {
+    const d = Math.SQRT1_2*radius;
+
+    ctx.beginPath();
+    ctx.moveTo(toPixels(x-d),yToPixels(y-d));
+    ctx.lineTo(toPixels(x+d),yToPixels(y+d));
+    ctx.moveTo(toPixels(x+d),yToPixels(y-d));
+    ctx.lineTo(toPixels(x-d),yToPixels(y+d));
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = colour;
+    ctx.stroke();
 }
 
 function fillSquares(colour, initialX) {
@@ -564,7 +581,7 @@ function drawAimingCircles() {
     if (targetPiece !== null && clickPosition !== null) {
         var drag = getDragVec(currentMousePosition);
         var dragLength = vecLength(drag);
-        if (dragLength > 0) {
+        if (dragLength > MIN_DRAG_DISTANCE) {
             var dragDir = toUnitVec(drag);
             for (var i = 0; i < NUM_DRAG_CIRCLES; i += 1) {
                 var circleCoords = addVec(
@@ -575,6 +592,12 @@ function drawAimingCircles() {
                 drawCircle(circleCoords.x, circleCoords.y,
                            DRAG_CIRCLE_RADIUS, DRAG_CIRCLE_COLOUR, true);
             }
+        } else if( dragLength > 0 ) {
+            var colour = COLLISION_CIRCLE_TARGET_COLOUR;
+            if ( DEBUG_DRAW_COLLISION_CIRCLES ) {
+                colour = COLLISION_CIRCLE_DEBUG_COLOUR;
+            }
+            drawCross(targetPiece.coords.x, targetPiece.coords.y, targetPiece.radius(), COLLISION_CIRCLE_TARGET_COLOUR);
         }
     }
 }
