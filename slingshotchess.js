@@ -220,9 +220,6 @@ function init() {
 
     let resolvePointEvent = function(f) {
         return function(e) {
-            if( e.targetTouches !== undefined ) {
-                e = e.targetTouches[0];
-            }
             f(e);
             if(TOUCH_EVENT_DEBUG) {
                 eventDebugPrint(e);
