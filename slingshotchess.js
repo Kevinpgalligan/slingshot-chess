@@ -205,11 +205,9 @@ var targetPiece = null;
 var currentMousePosition = null;
 
 function eventDebugPrint(e) {
-    if(TOUCH_EVENT_DEBUG) {
-        let c = Math.ceil;
-        let cmp = currentMousePosition == null ? {x:0,y:0} : currentMousePosition;
-        debugTouchSpan.innerText = `${e.type == undefined ? 'unknown' : e.type} @ x,y (${c(e.clientX)},${c(e.clientY)}) cms (${c(cmp.x)},${c(cmp.y)}) chpc: ${canvas.hasPointerCapture(e.pointerId)}`;
-    }
+    let c = Math.ceil;
+    let cmp = currentMousePosition == null ? {x:0,y:0} : currentMousePosition;
+    debugTouchSpan.innerText = `${e.type == undefined ? 'unknown' : e.type} @ x,y (${c(e.clientX)},${c(e.clientY)}) cms (${c(cmp.x)},${c(cmp.y)}) chpc: ${canvas.hasPointerCapture(e.pointerId)}`;
 }
 
 function init() {
@@ -220,20 +218,21 @@ function init() {
         canvas.parentNode.insertBefore(debugTouchSpan, canvas.nextSibling);
     }
 
-    let addDebugPrint = function(f) {
+    let resolvePointEvent = function(f) {
         return function(e) {
             if( e.targetTouches !== undefined ) {
                 e = e.targetTouches[0];
             }
             f(e);
-            eventDebugPrint(e);
-            
+            if(TOUCH_EVENT_DEBUG) {
+                eventDebugPrint(e);
+            }
         }
     }
-    window.addEventListener('pointerdown',addDebugPrint(storeClickPosition));
-    window.addEventListener('pointerup',addDebugPrint(releaseClick));
-    window.addEventListener('pointermove', addDebugPrint(storeCurrentMousePosition));
-    window.addEventListener('pointercancel', addDebugPrint(cancelClick));
+    window.addEventListener('pointerdown',resolvePointEvent(storeClickPosition));
+    window.addEventListener('pointerup',resolvePointEvent(releaseClick));
+    window.addEventListener('pointermove', resolvePointEvent(storeCurrentMousePosition));
+    window.addEventListener('pointercancel', resolvePointEvent(cancelClick));
 
 }
 
@@ -292,6 +291,8 @@ function storeCurrentMousePosition(event) {
 
 function releaseClick(event) {
     if (targetPiece !== null && clickPosition !== null && launchAllowed()) {
+        // touch end events do not have coordinates
+        // so use last saved position from movement
         var drag = getDragVec(currentMousePosition);
         var dragLength = vecLength(drag);
         if (dragLength > MIN_DRAG_DISTANCE) {
@@ -628,5 +629,4 @@ function drawCurrentMousePosition() {
         drawCircle(currentMousePosition.x, currentMousePosition.y,
                DRAG_CIRCLE_RADIUS, DRAG_CIRCLE_COLOUR, true);
     }
-
 }
