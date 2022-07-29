@@ -206,12 +206,12 @@ var currentMousePosition = null;
 
 function eventDebugPrint(e) {
     let c = Math.ceil;
-    let cmp = currentMousePosition == null ? {x:0,y:0} : currentMousePosition;
+    let cmp = currentMousePosition == null ? {x:0, y:0} : currentMousePosition;
     debugTouchSpan.innerText = `${e.type == undefined ? 'unknown' : e.type} @ x,y (${c(e.clientX)},${c(e.clientY)}) cms (${c(cmp.x)},${c(cmp.y)}) chpc: ${canvas.hasPointerCapture(e.pointerId)}`;
 }
 
 function init() {
-    if(TOUCH_EVENT_DEBUG) {
+    if (TOUCH_EVENT_DEBUG) {
         debugTouchSpan.style.display="block";
         debugTouchSpan.style.textAlign="center";
         let canvas = document.getElementsByTagName("canvas")[0];
@@ -220,17 +220,14 @@ function init() {
 
     let resolvePointEvent = function(f) {
         return function(e) {
-            if( e.targetTouches !== undefined ) {
-                e = e.targetTouches[0];
-            }
             f(e);
-            if(TOUCH_EVENT_DEBUG) {
+            if (TOUCH_EVENT_DEBUG) {
                 eventDebugPrint(e);
             }
         }
     }
-    window.addEventListener('pointerdown',resolvePointEvent(storeClickPosition));
-    window.addEventListener('pointerup',resolvePointEvent(releaseClick));
+    window.addEventListener('pointerdown', resolvePointEvent(storeClickPosition));
+    window.addEventListener('pointerup', resolvePointEvent(releaseClick));
     window.addEventListener('pointermove', resolvePointEvent(storeCurrentMousePosition));
     window.addEventListener('pointercancel', resolvePointEvent(cancelClick));
 
@@ -257,14 +254,14 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function  getClickPosition(evt) {
-    var rect = canvas.getBoundingClientRect(), 
+function getClickPosition(evt) {
+    var rect = canvas.getBoundingClientRect(),
       scaleX = canvas.width / rect.width,
       scaleY = canvas.height / rect.height;
-  
+
     return vec2d(
-        toUnitLengths((evt.clientX - rect.left) * scaleX),  
-        yToUnitLengths((evt.clientY - rect.top) * scaleY) 
+        toUnitLengths((evt.clientX - rect.left) * scaleX),
+        yToUnitLengths((evt.clientY - rect.top) * scaleY)
     );
   }
 
@@ -383,7 +380,7 @@ function updateGameState() {
             i += 1;
         }
     }
-    
+
     if (gameOver) {
         if (kingDead[PieceColour.White]) {
             winningTeam = PieceColour.Black;
@@ -462,7 +459,7 @@ function render() {
     drawAimingCircles();
     drawOverlay();
 
-    if( TOUCH_EVENT_DEBUG ) {
+    if (TOUCH_EVENT_DEBUG) {
         drawCurrentMousePosition();
     }
 }
@@ -625,7 +622,7 @@ function drawAimingCircles() {
 }
 
 function drawCurrentMousePosition() {
-    if( currentMousePosition !== null ) { 
+    if (currentMousePosition !== null) {
         drawCircle(currentMousePosition.x, currentMousePosition.y,
                DRAG_CIRCLE_RADIUS, DRAG_CIRCLE_COLOUR, true);
     }
