@@ -236,20 +236,84 @@ function init() {
     window.addEventListener('pointercancel', resolvePointEvent(cancelClick));
 }
 
+/* simple ticker class */
+let Ticker = class {
+    constructor(intervalms) {
+        this.ticks = -1;
+        this.waiter = null;
+        this.ticker = -1;
+        this.interval = intervalms;
+    }
+
+    isRunning() {
+        return this.ticker != -1;
+    }
+
+    start() {
+        if (!this.isRunning()) {
+            this.ticker = window.setInterval(this.tick.bind(this),this.interval);
+        }
+        this.tick();
+    }
+
+    stop() {
+        if (this.isRunning()) {
+            pause();
+            reset();
+        }
+    }
+
+    pause() {
+        if (this.isRunning()) {
+            window.clearInterval(this.ticker);
+            this.ticker = -1;
+        }
+    }
+
+    reset() {
+        this.ticks = 0;
+    }
+
+    tick() {
+        this.ticks++;
+        this.lastTick = Date.now();
+        if (this.waiter !== null) {
+            this.waiter();
+            this.waiter = null;
+        }
+    }
+
+    async waitForNextTick(currentTick) {
+        let p = new Promise( resolve => {
+            if (currentTick < this.ticks) {
+                resolve();
+            } else {
+                this.waiter = resolve;
+            }
+        });
+        return p;
+    }
+}
+
 async function runMainLoop() {
     // Main game loop!
     // https://dewitters.com/dewitters-gameloop/
-    var nextTimestep = Date.now();
+
+    let ticker = new Ticker(MILLIS_BETWEEN_TIMESTEPS);
+    let gametick = 0;
+    ticker.start();
+
     while (true) {
+        await ticker.waitForNextTick(gametick);
+
         var loops = 0;
-        while (Date.now() > nextTimestep && loops < MAX_RENDER_SKIPS) {
+        while (ticker.ticks > gametick && loops < MAX_RENDER_SKIPS) {
             updateGameState();
-            nextTimestep += MILLIS_BETWEEN_TIMESTEPS;
-            loops += 1;
+            ++gametick;
+            ++loops;
         }
         render();
         window.requestAnimationFrame(time => {});
-        await sleep(Math.max(0, nextTimestep - Date.now()));
     }
 }
 
