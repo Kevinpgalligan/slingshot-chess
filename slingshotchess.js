@@ -38,6 +38,8 @@ const TURN_INDICATOR_HEIGHT = 40;
 const TURN_INDICATOR_TEXT_OFFSET = 10;
 const TURN_INDICATOR_FONT_SIZE = 25;
 
+const DEATH_ANIMATION_DURATION = 2000;
+
 // Lichess cburnett pieces encoded in base64.
 // Available under the GNU Affero General Public License.
 const pieceTypeToSrc = {
@@ -149,6 +151,72 @@ class Piece {
     }
 }
 
+class AnimationManager {
+    constructor(ctx) {
+        this.queue = new Array();
+        this.ctx = ctx;
+    }
+
+    render(tm) {
+        let i = this.queue.length;
+        // iterate backwards to allow deletion
+        while ( i-- ) {
+            this.queue[i].draw(this.ctx,tm);
+            this.ctx.resetTransform();
+            if(this.queue[i].isFinished) {
+                this.queue.splice(i,1);
+            }
+        }
+    }
+
+    add(animation) {
+        // queue is iterated backwards
+        this.queue.unshift(animation);
+    }
+
+}
+
+
+class PieceDeathAnimation {
+    constructor(piece, duration) {
+        this.isFinished = false;
+        this.duration = duration;
+        this.piece = piece;
+    }
+
+    draw(ctx,tm) {
+        if ( this.startTime === undefined ) {
+            this.startTime = tm;
+        } else if ( tm - this.startTime > this.duration ){
+            this.isFinished = true;
+            return;
+        }
+        let currTime = tm - this.startTime;
+
+        // these are static over time
+        const xPixels = toPixels(this.piece.coords.x);
+        const yPixels = yToPixels(this.piece.coords.y);
+
+        // this rotates over time
+        const rotate = 6 * ( Math.PI / 2 ) / this.duration * currTime;
+
+        // this scales over time
+        const scale = 1 - (currTime / this.duration);
+
+        ctx.translate(xPixels,yPixels);
+        ctx.rotate(rotate);
+        ctx.scale(scale,scale);
+
+        ctx.drawImage(this.piece.getImage(), -toPixels(PIECE_WIDTH)/2, -toPixels(PIECE_WIDTH)/2,
+				  toPixels(PIECE_WIDTH), toPixels(PIECE_WIDTH));
+
+    }
+}
+
+function animateDeath(piece) {
+    animationQueue.add(new PieceDeathAnimation(piece,DEATH_ANIMATION_DURATION));
+}
+
 function piecesIntersect(b1, b2) {
     return euclideanDistance(b1.coords, b2.coords) < b1.radius() + b2.radius();
 }
@@ -202,6 +270,8 @@ var targetPiece = null;
 
 var currentMousePosition = null;
 
+var animationQueue = new AnimationManager(ctx);
+
 function init() {
     window.addEventListener('mousedown', function(e) {
         storeClickPosition(e);
@@ -226,7 +296,7 @@ async function runMainLoop() {
             loops += 1;
         }
         render();
-        window.requestAnimationFrame(time => {});
+        window.requestAnimationFrame(animationQueue.render.bind(animationQueue));
         await sleep(Math.max(0, nextTimestep - Date.now()));
     }
 }
@@ -344,7 +414,8 @@ function updateGameState() {
                 kingDead[pieces[i].info.colour] = true;
                 gameOver = true;
             }
-            pieces.splice(i, 1);
+            let deadPiece = pieces.splice(i, 1);
+            animateDeath(deadPiece[0]);
         } else {
             i += 1;
         }
@@ -578,3 +649,4 @@ function drawAimingCircles() {
         }
     }
 }
+
