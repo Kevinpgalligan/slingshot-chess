@@ -161,8 +161,9 @@ class AnimationManager {
         let i = this.queue.length;
         // iterate backwards to allow deletion
         while ( i-- ) {
+            this.ctx.save();
             this.queue[i].draw(this.ctx,tm);
-            this.ctx.resetTransform();
+            this.ctx.restore();
             if(this.queue[i].isFinished) {
                 this.queue.splice(i,1);
             }
@@ -202,6 +203,9 @@ class PieceDeathAnimation {
 
         // this scales over time
         const scale = 1 - (currTime / this.duration);
+
+        // :)
+        ctx.globalAlpha = scale; 
 
         ctx.translate(xPixels,yPixels);
         ctx.rotate(rotate);
