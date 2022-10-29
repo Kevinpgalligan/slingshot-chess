@@ -3,6 +3,9 @@ A version of chess where you launch your pieces at the enemy and try to knock th
 
 To play it, clone the repo and open `index.html`. It can also be played [on my website](https://www.kevingal.com/apps/slingshotchess.html).
 
+## Credit
+* Ben Adcock for contributing bug fixes & features.
+
 ## References
 * Collision physics: <https://en.wikipedia.org/wiki/Elastic_collision>
 * Game loop stuff:
