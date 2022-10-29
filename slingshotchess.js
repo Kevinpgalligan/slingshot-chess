@@ -1,4 +1,5 @@
 const DEBUG_DRAW_COLLISION_CIRCLES = false;
+const TOUCH_EVENT_DEBUG = false;
 
 const TIMESTEPS_PER_SECOND = 30;
 const MILLIS_BETWEEN_TIMESTEPS = 1000/TIMESTEPS_PER_SECOND;
@@ -197,6 +198,7 @@ pushPiecesAlongRow(pieces, 0, PieceColour.White);
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext('2d');
+const debugTouchSpan = document.createElement("span");
 
 var pixelsPerUnitLength = 0;
 var unitLengthsPerPixel = 0;
@@ -206,16 +208,33 @@ var targetPiece = null;
 
 var currentMousePosition = null;
 
+function eventDebugPrint(e) {
+    let c = Math.ceil;
+    let cmp = currentMousePosition == null ? {x:0, y:0} : currentMousePosition;
+    debugTouchSpan.innerText = `${e.type == undefined ? 'unknown' : e.type} @ x,y (${c(e.clientX)},${c(e.clientY)}) cms (${c(cmp.x)},${c(cmp.y)}) chpc: ${canvas.hasPointerCapture(e.pointerId)}`;
+}
+
 function init() {
-    window.addEventListener('mousedown', function(e) {
-        storeClickPosition(e);
-    });
-    window.addEventListener('mouseup', function(e) {
-        releaseClick(e);
-    });
-    window.addEventListener('mousemove', function(e) {
-        storeCurrentMousePosition(e);
-    });
+    if (TOUCH_EVENT_DEBUG) {
+        debugTouchSpan.style.display="block";
+        debugTouchSpan.style.textAlign="center";
+        let canvas = document.getElementsByTagName("canvas")[0];
+        canvas.parentNode.insertBefore(debugTouchSpan, canvas.nextSibling);
+    }
+
+    let resolvePointEvent = function(f) {
+        return function(e) {
+            f(e);
+            if (TOUCH_EVENT_DEBUG) {
+                eventDebugPrint(e);
+            }
+        }
+    }
+    window.addEventListener('pointerdown', resolvePointEvent(storeClickPosition));
+    window.addEventListener('pointerup', resolvePointEvent(releaseClick));
+    window.addEventListener('pointermove', resolvePointEvent(storeCurrentMousePosition));
+    window.addEventListener('pointercancel', resolvePointEvent(cancelClick));
+
 }
 
 async function runMainLoop() {
@@ -239,11 +258,16 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function getClickPosition(event) {
-    const rect = canvas.getBoundingClientRect()
-    return vec2d(toUnitLengths(event.clientX - rect.left),
-                 yToUnitLengths(event.clientY - rect.top));
-}
+function getClickPosition(evt) {
+    var rect = canvas.getBoundingClientRect(),
+      scaleX = canvas.width / rect.width,
+      scaleY = canvas.height / rect.height;
+
+    return vec2d(
+        toUnitLengths((evt.clientX - rect.left) * scaleX),
+        yToUnitLengths((evt.clientY - rect.top) * scaleY)
+    );
+  }
 
 function storeClickPosition(event) {
     if (launchAllowed()) {
@@ -268,7 +292,9 @@ function storeCurrentMousePosition(event) {
 
 function releaseClick(event) {
     if (targetPiece !== null && clickPosition !== null && launchAllowed()) {
-        var drag = getDragVec(getClickPosition(event));
+        // touch end events do not have coordinates
+        // so use last saved position from movement
+        var drag = getDragVec(currentMousePosition);
         var dragLength = vecLength(drag);
         if (dragLength > MIN_DRAG_DISTANCE) {
             // Direction.
@@ -281,8 +307,13 @@ function releaseClick(event) {
             turnInProgress = true;
         }
     }
+    cancelClick(event);
+}
+
+function cancelClick(event) {
     targetPiece = null;
     clickPosition = null;
+    currentMousePosition = null;
 }
 
 function changeTeamToMove() {
@@ -353,7 +384,7 @@ function updateGameState() {
             i += 1;
         }
     }
-    
+
     if (gameOver) {
         if (kingDead[PieceColour.White]) {
             winningTeam = PieceColour.Black;
@@ -414,16 +445,27 @@ function outsideBoardArea(piece) {
 }
 
 function render() {
+    const ratio = Math.ceil(window.devicePixelRatio);
+    const sideSize = Math.min(MAX_WORLD_SIZE_PIXELS, window.innerHeight, window.innerWidth);
+
     // This can change as the user resizes the window.
-    canvas.width = Math.min(MAX_WORLD_SIZE_PIXELS, window.innerHeight, window.innerWidth);
-    canvas.height = canvas.width;
+    canvas.width =  sideSize * ratio;
+    canvas.height = sideSize * ratio;
+    canvas.style.width = `${sideSize}px`;
+    canvas.style.height = `${sideSize}px`;
+
     pixelsPerUnitLength = canvas.width/WORLD_WIDTH;
     unitLengthsPerPixel = WORLD_WIDTH/canvas.width;
+
     drawBackground();
     drawBoard();
     pieces.forEach(drawPiece);
     drawAimingCircles();
     drawOverlay();
+
+    if (TOUCH_EVENT_DEBUG) {
+        drawCurrentMousePosition();
+    }
 }
 
 function drawOverlay() {
@@ -576,7 +618,7 @@ function drawRectangle(x, y, width, height, colour) {
 }
 
 function drawAimingCircles() {
-    if (targetPiece !== null && clickPosition !== null) {
+    if (targetPiece !== null && clickPosition !== null && currentMousePosition !== null) {
         var drag = getDragVec(currentMousePosition);
         var dragLength = vecLength(drag);
         if (dragLength > MIN_DRAG_DISTANCE) {
@@ -597,5 +639,12 @@ function drawAimingCircles() {
             }
             drawCross(targetPiece.coords.x, targetPiece.coords.y, DRAG_CIRCLE_RADIUS, COLLISION_CIRCLE_TARGET_COLOUR);
         }
+    }
+}
+
+function drawCurrentMousePosition() {
+    if (currentMousePosition !== null) {
+        drawCircle(currentMousePosition.x, currentMousePosition.y,
+               DRAG_CIRCLE_RADIUS, DRAG_CIRCLE_COLOUR, true);
     }
 }
