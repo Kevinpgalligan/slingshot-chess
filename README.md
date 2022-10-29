@@ -6,6 +6,11 @@ To play it, clone the repo and open `index.html`. It can also be played [on my w
 ## Credit
 * Ben Adcock for contributing bug fixes & features.
 
+## Debugging Over Wi-Fi
+Quoting Ben Adcock:
+
+> If you have the Go SDK installed you can run "go run webserver.go" and it'll spin up a webserver on port :3000 which you can then use for debugging with real devices over Wi-Fi.
+
 ## References
 * Collision physics: <https://en.wikipedia.org/wiki/Elastic_collision>
 * Game loop stuff:

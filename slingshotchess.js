@@ -234,7 +234,6 @@ function init() {
     window.addEventListener('pointerup', resolvePointEvent(releaseClick));
     window.addEventListener('pointermove', resolvePointEvent(storeCurrentMousePosition));
     window.addEventListener('pointercancel', resolvePointEvent(cancelClick));
-
 }
 
 async function runMainLoop() {
