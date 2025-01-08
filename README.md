@@ -1,4 +1,4 @@
-## Description
+## Slingshot Chess
 A version of chess where you launch your pieces at the enemy and try to knock their king off the edge of the board.
 
 To play it, clone the repo and open `index.html`. It can also be played [on my website](https://www.kevingal.com/apps/slingshotchess.html).
